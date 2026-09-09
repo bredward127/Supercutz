@@ -1,3 +1,4 @@
+import AssetsPanel from "@/components/AssetsPanel";
 import ModelSelector from "@/components/ModelSelector";
 
 export default function CreateVideoPage() {
@@ -17,14 +18,11 @@ export default function CreateVideoPage() {
         <ModelSelector />
       </section>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-dashed border-zinc-300 p-6 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+      <section className="flex flex-col gap-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
           Assets
         </h2>
-        <p>
-          Upload a source video, an optional style/reference video, images, and
-          optional audio — coming in a later stage.
-        </p>
+        <AssetsPanel />
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-dashed border-zinc-300 p-6 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
