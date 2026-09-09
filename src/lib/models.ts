@@ -1,11 +1,22 @@
 // Registry of fal.ai video models available to the app. This file is data
 // only — UI components read from it, they don't branch on model names.
 //
-// Endpoint strings, durations, resolutions, and aspect ratios below are
-// best-guess placeholders following fal.ai's usual naming/parameter
-// conventions. Nothing here has been verified against fal.ai's live model
-// catalog yet — confirm every field against the real docs before wiring up
-// actual API calls in a later stage.
+// Seedance 2.0 / 2.0 Fast / 2.5 Reference-to-Video (the three models with a
+// working adapter as of the generate-video route): supportsImages/Videos/Audio,
+// maxImages/Videos/Audio, minDuration/maxDuration, and resolutions below are
+// verified against the actual input schema shipped in @fal-ai/client's type
+// definitions (Seedance2R2VInput) — max 9 images, max 3 videos (combined
+// duration 2-15s), max 3 audio files (combined duration <=15s), duration 4-15s,
+// resolutions 480p/720p. The `falEndpoint` path strings for these three are
+// NOT verified: the installed SDK's endpoint map only registers Seedance
+// v1/v1.5 paths, not v2 — v2's Input/Output types exist but no endpoint ID
+// string is published there yet. The paths below follow the same naming
+// convention as the confirmed v1/v1.5 endpoints; confirm the exact string in
+// the fal.ai dashboard before spending real generation credits, and note that
+// 2.5 is assumed (not confirmed) to share 2.0's parameter shape.
+//
+// The remaining models (Kling, Happy Horse) are experimental placeholders —
+// nothing about them is verified and no adapter exists for them yet.
 
 export type ModelCategory =
   | "reference-to-video"
@@ -52,14 +63,14 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     category: "reference-to-video",
     supportsImages: true,
     supportsVideos: true,
-    supportsAudio: false,
-    maxImages: 4,
-    maxVideos: 1,
-    maxAudio: 0,
-    minDuration: 5,
-    maxDuration: 10,
-    aspectRatios: ["16:9", "9:16", "1:1"],
-    resolutions: ["720p", "1080p"],
+    supportsAudio: true,
+    maxImages: 9,
+    maxVideos: 3,
+    maxAudio: 3,
+    minDuration: 4,
+    maxDuration: 15,
+    aspectRatios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+    resolutions: ["480p", "720p"],
     promptTemplateType: "reference-to-video",
     pricingNote: "Pricing per fal.ai — confirm current rate before use.",
     status: "enabled",
@@ -71,14 +82,14 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     category: "reference-to-video",
     supportsImages: true,
     supportsVideos: true,
-    supportsAudio: false,
-    maxImages: 4,
-    maxVideos: 1,
-    maxAudio: 0,
-    minDuration: 5,
-    maxDuration: 10,
-    aspectRatios: ["16:9", "9:16", "1:1"],
-    resolutions: ["720p"],
+    supportsAudio: true,
+    maxImages: 9,
+    maxVideos: 3,
+    maxAudio: 3,
+    minDuration: 4,
+    maxDuration: 15,
+    aspectRatios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+    resolutions: ["480p", "720p"],
     promptTemplateType: "reference-to-video",
     pricingNote: "Faster/cheaper variant of Seedance 2.0 — confirm current rate before use.",
     status: "enabled",
@@ -90,16 +101,16 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     category: "reference-to-video",
     supportsImages: true,
     supportsVideos: true,
-    supportsAudio: false,
-    maxImages: 4,
-    maxVideos: 1,
-    maxAudio: 0,
-    minDuration: 5,
-    maxDuration: 12,
-    aspectRatios: ["16:9", "9:16", "1:1"],
-    resolutions: ["720p", "1080p"],
+    supportsAudio: true,
+    maxImages: 9,
+    maxVideos: 3,
+    maxAudio: 3,
+    minDuration: 4,
+    maxDuration: 15,
+    aspectRatios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+    resolutions: ["480p", "720p"],
     promptTemplateType: "reference-to-video",
-    pricingNote: "Pricing per fal.ai — confirm current rate before use.",
+    pricingNote: "Pricing per fal.ai — assumed to match Seedance 2.0's parameter shape (unconfirmed); confirm current rate and limits before use.",
     status: "enabled",
   },
   {
