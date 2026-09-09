@@ -1,6 +1,7 @@
 "use client";
 
 import { IMAGE_ROLE_OPTIONS, type ImageAsset, type ImageRole } from "@/lib/assets";
+import type { FalVideoModel } from "@/lib/models";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -26,6 +27,7 @@ const fileInputClassName =
   "mt-1 block w-full text-sm text-zinc-600 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-zinc-700 dark:text-zinc-400 dark:file:bg-zinc-100 dark:file:text-zinc-900";
 
 interface AssetsPanelProps {
+  model: FalVideoModel | undefined;
   sourceVideo: File | null;
   onSourceVideoChange: (file: File | null) => void;
   styleVideo: File | null;
@@ -37,6 +39,7 @@ interface AssetsPanelProps {
 }
 
 export default function AssetsPanel({
+  model,
   sourceVideo,
   onSourceVideoChange,
   styleVideo,
@@ -46,6 +49,16 @@ export default function AssetsPanel({
   audio,
   onAudioChange,
 }: AssetsPanelProps) {
+  // Which inputs make sense at all depends on the selected model — e.g.
+  // Kling's video-edit models take only one video (no style video slot),
+  // and Kling's image-to-video model takes no video at all. Hiding what a
+  // model can't use (rather than showing it and silently dropping it later)
+  // avoids uploading a file the request will never include.
+  const showSourceVideo = model === undefined || (model.supportsVideos && model.maxVideos >= 1);
+  const showStyleVideo = model !== undefined && model.supportsVideos && model.maxVideos >= 2;
+  const showImages = model === undefined || model.supportsImages;
+  const showAudio = model === undefined || model.supportsAudio;
+  const isImageToVideoModel = model?.requiredAsset === "image";
   const handleImagesSelected = (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
     const newImages: ImageAsset[] = Array.from(fileList).map((file) => ({
@@ -71,89 +84,102 @@ export default function AssetsPanel({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Source video
-          <input
-            type="file"
-            accept="video/*"
-            onChange={(event) => onSourceVideoChange(event.target.files?.[0] ?? null)}
-            className={fileInputClassName}
-          />
-        </label>
-        {sourceVideo && <FileInfo file={sourceVideo} />}
-      </div>
+      {showSourceVideo && (
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Source video
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(event) => onSourceVideoChange(event.target.files?.[0] ?? null)}
+              className={fileInputClassName}
+            />
+          </label>
+          {sourceVideo && <FileInfo file={sourceVideo} />}
+        </div>
+      )}
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Style / reference video{" "}
-          <span className="font-normal text-zinc-400">(optional)</span>
-          <input
-            type="file"
-            accept="video/*"
-            onChange={(event) => onStyleVideoChange(event.target.files?.[0] ?? null)}
-            className={fileInputClassName}
-          />
-        </label>
-        {styleVideo && <FileInfo file={styleVideo} />}
-      </div>
+      {showStyleVideo && (
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Style / reference video{" "}
+            <span className="font-normal text-zinc-400">(optional)</span>
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(event) => onStyleVideoChange(event.target.files?.[0] ?? null)}
+              className={fileInputClassName}
+            />
+          </label>
+          {styleVideo && <FileInfo file={styleVideo} />}
+        </div>
+      )}
 
-      <div className="flex flex-col gap-3">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Images{" "}
-          <span className="font-normal text-zinc-400">
-            (logo, product, screenshots, environment references)
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={(event) => handleImagesSelected(event.target.files)}
-            className={fileInputClassName}
-          />
-        </label>
-        {images.length > 0 && (
-          <ul className="flex flex-col gap-2">
-            {images.map((image) => (
-              <li
-                key={image.id}
-                className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <FileInfo file={image.file} />
-                <select
-                  value={image.role}
-                  onChange={(event) =>
-                    updateImageRole(image.id, event.target.value as ImageRole)
-                  }
-                  className="w-fit rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+      {showImages && (
+        <div className="flex flex-col gap-3">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Images{" "}
+            <span className="font-normal text-zinc-400">
+              {isImageToVideoModel
+                ? `(first image is the required start frame${
+                    model && model.maxImages >= 2 ? "; a second, optional, becomes the end frame" : ""
+                  })`
+                : "(logo, product, screenshots, environment references)"}
+              {model ? ` — up to ${model.maxImages}` : ""}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(event) => handleImagesSelected(event.target.files)}
+              className={fileInputClassName}
+            />
+          </label>
+          {images.length > 0 && (
+            <ul className="flex flex-col gap-2">
+              {images.map((image) => (
+                <li
+                  key={image.id}
+                  className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  {IMAGE_ROLE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                  <FileInfo file={image.file} />
+                  <select
+                    value={image.role}
+                    onChange={(event) =>
+                      updateImageRole(image.id, event.target.value as ImageRole)
+                    }
+                    className="w-fit rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  >
+                    {IMAGE_ROLE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Audio{" "}
-          <span className="font-normal text-zinc-400">
-            (optional voice-over or music reference)
-          </span>
-          <input
-            type="file"
-            accept="audio/*"
-            onChange={(event) => onAudioChange(event.target.files?.[0] ?? null)}
-            className={fileInputClassName}
-          />
-        </label>
-        {audio && <FileInfo file={audio} />}
-      </div>
+      {showAudio && (
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Audio{" "}
+            <span className="font-normal text-zinc-400">
+              (optional voice-over or music reference)
+            </span>
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={(event) => onAudioChange(event.target.files?.[0] ?? null)}
+              className={fileInputClassName}
+            />
+          </label>
+          {audio && <FileInfo file={audio} />}
+        </div>
+      )}
 
       <button
         type="button"

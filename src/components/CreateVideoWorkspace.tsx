@@ -6,7 +6,7 @@ import GenerationPanel from "@/components/GenerationPanel";
 import ModelSelector from "@/components/ModelSelector";
 import ScriptPanel from "@/components/ScriptPanel";
 import { buildAssetRoleList, type ImageAsset } from "@/lib/assets";
-import { FAL_VIDEO_MODELS } from "@/lib/models";
+import { FAL_VIDEO_MODELS, getModelById } from "@/lib/models";
 import { type AspectRatio, type DurationSelection } from "@/lib/script";
 
 const DEFAULT_MODEL_ID = FAL_VIDEO_MODELS[0]?.id ?? "";
@@ -24,6 +24,7 @@ export default function CreateVideoWorkspace() {
   const [formKey, setFormKey] = useState(0);
 
   const [selectedModelId, setSelectedModelId] = useState(DEFAULT_MODEL_ID);
+  const selectedModel = getModelById(selectedModelId);
 
   const [sourceVideo, setSourceVideo] = useState<File | null>(null);
   const [styleVideo, setStyleVideo] = useState<File | null>(null);
@@ -79,6 +80,7 @@ export default function CreateVideoWorkspace() {
         </h2>
         <AssetsPanel
           key={formKey}
+          model={selectedModel}
           sourceVideo={sourceVideo}
           onSourceVideoChange={setSourceVideo}
           styleVideo={styleVideo}

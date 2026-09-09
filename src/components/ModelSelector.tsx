@@ -43,11 +43,15 @@ export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
             </div>
             <div>
               <dt className="text-zinc-500 dark:text-zinc-400">Resolutions</dt>
-              <dd className="font-medium">{selected.resolutions.join(", ")}</dd>
+              <dd className="font-medium">
+                {selected.resolutions.length > 0 ? selected.resolutions.join(", ") : "not applicable"}
+              </dd>
             </div>
             <div>
               <dt className="text-zinc-500 dark:text-zinc-400">Aspect ratios</dt>
-              <dd className="font-medium">{selected.aspectRatios.join(", ")}</dd>
+              <dd className="font-medium">
+                {selected.aspectRatios.length > 0 ? selected.aspectRatios.join(", ") : "not applicable"}
+              </dd>
             </div>
             <div>
               <dt className="text-zinc-500 dark:text-zinc-400">Images</dt>

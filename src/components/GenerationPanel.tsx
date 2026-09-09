@@ -130,11 +130,21 @@ export default function GenerationPanel({
   }, [requestId, modelId]);
 
   const isModelSupported = model !== undefined && isSupportedGenerateVideoModelId(model.id);
-  // No specific asset is mandatory (fal's own schema only requires a
-  // prompt) — but generating with nothing to look at defeats the point of
-  // a reference-to-video model, so require at least one visual reference:
-  // a source video, a style video, or an image. Audio alone doesn't count.
-  const hasAnyVisualReference = sourceVideo !== null || styleVideo !== null || images.length > 0;
+  // What counts as "has a reference to work with" depends on the model:
+  // Seedance accepts any combination of source video / style video / images
+  // (fal's own schema only requires a prompt, but generating with nothing to
+  // look at defeats the point of a reference-to-video model). Kling's
+  // video-edit models specifically require the source video; Kling's
+  // image-to-video model specifically requires at least one image (it
+  // becomes the required start frame). Audio alone never counts.
+  const hasRequiredAsset =
+    model === undefined
+      ? false
+      : model.requiredAsset === "video"
+        ? sourceVideo !== null
+        : model.requiredAsset === "image"
+          ? images.length > 0
+          : sourceVideo !== null || styleVideo !== null || images.length > 0;
   const isDurationInRange =
     model !== undefined &&
     resolvedDuration !== null &&
@@ -142,7 +152,7 @@ export default function GenerationPanel({
     resolvedDuration <= model.maxDuration;
   const isPromptFilled = prompt.trim().length > 0;
   const canGenerate =
-    model !== undefined && isModelSupported && hasAnyVisualReference && isDurationInRange && isPromptFilled;
+    model !== undefined && isModelSupported && hasRequiredAsset && isDurationInRange && isPromptFilled;
   const isBusy = phase !== "idle" && phase !== "ready" && phase !== "failed";
 
   const handleGenerateVideo = async () => {
@@ -152,7 +162,15 @@ export default function GenerationPanel({
     setPhase("uploading");
 
     try {
-      const assetUrls = await uploadAssetsForGeneration({ sourceVideo, styleVideo, images, audio });
+      // Only upload assets the selected model can actually use — e.g. a
+      // style video left over from a previous Seedance selection must not
+      // get sent as a second video to a Kling model that only accepts one.
+      const assetUrls = await uploadAssetsForGeneration({
+        sourceVideo: model.maxVideos >= 1 ? sourceVideo : null,
+        styleVideo: model.maxVideos >= 2 ? styleVideo : null,
+        images: images.slice(0, model.maxImages),
+        audio: model.supportsAudio ? audio : null,
+      });
 
       const submission = await postJson<GenerateVideoResponse>("/api/generate-video", {
         modelId,
@@ -184,7 +202,7 @@ export default function GenerationPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      {model && (
+      {model && model.resolutions.length > 0 && (
         <label className="flex w-fit flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Resolution
           <select
@@ -216,10 +234,15 @@ export default function GenerationPanel({
             <ul className="list-inside list-disc text-xs text-zinc-500 dark:text-zinc-400">
               {!model && <li>Select a model.</li>}
               {model && !isModelSupported && (
-                <li>{model.label} doesn&apos;t have video generation wired up yet — pick a Seedance model.</li>
+                <li>{model.label} doesn&apos;t have video generation wired up yet — pick a different model.</li>
               )}
-              {model && isModelSupported && !hasAnyVisualReference && (
-                <li>Upload at least one image or video so the model has something to reference.</li>
+              {model && isModelSupported && !hasRequiredAsset && (
+                <li>
+                  {model.requiredAsset === "video" && `Upload a source video for ${model.label}.`}
+                  {model.requiredAsset === "image" && `Upload at least one image for ${model.label}.`}
+                  {model.requiredAsset === "any-visual" &&
+                    "Upload at least one image or video so the model has something to reference."}
+                </li>
               )}
               {model && !isDurationInRange && (
                 <li>

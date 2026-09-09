@@ -175,7 +175,10 @@ function buildVisualDirection(input: BuildPromptRequest, refs: AssetReference[],
     lines.push(`Match the lighting, color grade, and camera feel of ${styleTags.join(" and ")} throughout.`);
   }
 
-  if (!model.aspectRatios.includes(input.aspectRatio)) {
+  // An empty aspectRatios array means the model has no such parameter at
+  // all (e.g. Kling's edit-pro and image-to-video models derive frame shape
+  // from the source asset) — nothing to warn about in that case.
+  if (model.aspectRatios.length > 0 && !model.aspectRatios.includes(input.aspectRatio)) {
     lines.push(
       `Note: ${model.label} lists supported aspect ratios as ${model.aspectRatios.join(", ")} — confirm ${input.aspectRatio} is compatible before submission.`
     );

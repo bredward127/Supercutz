@@ -23,11 +23,14 @@ export interface GenerateVideoResponse {
 }
 
 // Models with a working fal adapter as of this stage. Keep in sync with
-// src/lib/fal-seedance.ts.
+// src/lib/fal-seedance.ts and src/lib/fal-kling.ts.
 export const SUPPORTED_GENERATE_VIDEO_MODEL_IDS = [
   "seedance-2-reference-to-video",
   "seedance-2-fast-reference-to-video",
   "seedance-2-5-reference-to-video",
+  "kling-o3-4k-video-to-video-reference",
+  "kling-o3-pro-video-to-video-edit",
+  "kling-v3-pro-image-to-video",
 ] as const;
 
 export type SupportedGenerateVideoModelId = (typeof SUPPORTED_GENERATE_VIDEO_MODEL_IDS)[number];
@@ -47,7 +50,6 @@ export function parseGenerateVideoRequest(body: Record<string, unknown>): Genera
     typeof body.prompt !== "string" ||
     body.prompt.trim().length === 0 ||
     typeof body.resolution !== "string" ||
-    body.resolution.trim().length === 0 ||
     typeof body.aspectRatio !== "string" ||
     body.aspectRatio.trim().length === 0 ||
     typeof body.durationSeconds !== "number" ||
@@ -104,12 +106,23 @@ export function validateAgainstModel(input: GenerateVideoRequest, model: FalVide
     );
   }
 
-  if (!model.resolutions.includes(input.resolution)) {
+  // An empty resolutions/aspectRatios array means the model has no such
+  // parameter at all (e.g. Kling), not "nothing is allowed" — skip the
+  // check entirely rather than rejecting every request.
+  if (model.resolutions.length > 0 && !model.resolutions.includes(input.resolution)) {
     errors.push(`${model.label} supports resolutions ${model.resolutions.join(", ")}; got "${input.resolution}".`);
   }
 
-  if (!model.aspectRatios.includes(input.aspectRatio)) {
+  if (model.aspectRatios.length > 0 && !model.aspectRatios.includes(input.aspectRatio)) {
     errors.push(`${model.label} supports aspect ratios ${model.aspectRatios.join(", ")}; got "${input.aspectRatio}".`);
+  }
+
+  if (model.requiredAsset === "video" && videos.length === 0) {
+    errors.push(`${model.label} requires a video to edit.`);
+  } else if (model.requiredAsset === "image" && images.length === 0) {
+    errors.push(`${model.label} requires at least one image.`);
+  } else if (model.requiredAsset === "any-visual" && videos.length === 0 && images.length === 0) {
+    errors.push(`${model.label} requires at least one image or video reference.`);
   }
 
   return errors;

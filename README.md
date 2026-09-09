@@ -10,12 +10,19 @@ Single-user, no accounts, no database. Everything lives in the browser tab until
 
 The page walks through four sections:
 
-1. **Model** — pick a fal.ai video model. Only **Seedance 2.0**, **Seedance 2.0 Fast**, and
-   **Seedance 2.5 Reference-to-Video** have a working generation adapter; the others listed
-   (Kling, Happy Horse) are placeholders with no backend wiring yet and can't be used to
-   generate a video.
+1. **Model** — pick a fal.ai video model. Six have a working generation adapter: **Seedance
+   2.0**, **Seedance 2.0 Fast**, and **Seedance 2.5 Reference-to-Video** (reference-to-video,
+   accepting any mix of source video / style video / images / audio); **Kling O3 4K
+   Video-to-Video (Reference)** and **Kling O3 Edit Video (Pro) Video-to-Video** (video
+   editing — require a single source video plus up to 4 optional style images, no separate
+   audio upload); and **Kling v3 Pro Image-to-Video** (requires at least one image — the
+   first becomes the start frame, an optional second becomes the end frame). **Kling O1
+   Video-to-Video Edit** remains an experimental placeholder with no backend wiring.
 2. **Assets** — upload a source video of yourself, an optional style/reference video, images
-   (logo, product, screenshot, etc. — each tagged with a role), and optional audio.
+   (logo, product, screenshot, etc. — each tagged with a role), and optional audio. Which of
+   these inputs are shown depends on the selected model — e.g. Kling's video-editing models
+   hide Style Video and Audio (they don't accept them), and Kling's image-to-video model
+   hides both video inputs entirely.
 3. **Script** — fill in campaign details (type, offer, CTA, audience, tone) and a target
    duration/aspect ratio, then either paste a transcript and have Claude clean it up, or have
    Claude write a script from scratch. Scripts come back as timecoded beats
@@ -96,10 +103,15 @@ there's no history or gallery of past generations.
 - **Seedance 2.0/2.5 endpoint IDs are unverified**: the fal.ai model IDs configured for these
   three models follow fal's established naming convention but haven't been confirmed against
   fal's live catalog. If generation fails immediately with a "not found"-style error, check
-  the endpoint string in `src/lib/models.ts` against your fal.ai dashboard.
+  the endpoint string in `src/lib/models.ts` against your fal.ai dashboard. The three Kling
+  endpoint IDs, by contrast, are copied directly from fal.ai's own published API docs pages.
 - **Aspect ratio isn't cross-validated against the model** in the Script section — an
   incompatible choice will surface as a failed generation with the server's validation
-  message, rather than being caught earlier in the form.
+  message, rather than being caught earlier in the form. (The three Kling models are an
+  exception: their aspect-ratio and asset requirements are enforced before submission.)
+- **Kling's "elements" (named character/object references) and multi-shot storyboards
+  (`multi_prompt`) aren't supported** — this app only wires up the plain prompt + required
+  asset(s) fields for each Kling model.
 
 ## Tech stack
 
