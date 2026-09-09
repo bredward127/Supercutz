@@ -23,10 +23,11 @@ export interface GenerateVideoResponse {
 }
 
 // Models with a working fal adapter as of this stage. Keep in sync with
-// src/lib/fal-seedance.ts and src/lib/fal-kling.ts.
+// src/lib/fal-seedance.ts and src/lib/fal-kling.ts. Seedance 2.0 and 2.0
+// Fast are excluded — their endpoint strings are unverified guesses (the
+// same guessing method produced a confirmed-404 wrong string for 2.5) and
+// are marked "experimental" in src/lib/models.ts until checked for real.
 export const SUPPORTED_GENERATE_VIDEO_MODEL_IDS = [
-  "seedance-2-reference-to-video",
-  "seedance-2-fast-reference-to-video",
   "seedance-2-5-reference-to-video",
   "kling-o3-4k-video-to-video-reference",
   "kling-o3-pro-video-to-video-edit",

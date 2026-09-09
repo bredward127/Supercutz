@@ -1,20 +1,16 @@
 // Registry of fal.ai video models available to the app. This file is data
 // only — UI components read from it, they don't branch on model names.
 //
-// Seedance 2.0 / 2.0 Fast / 2.5 Reference-to-Video (three of the six models
-// with a working adapter as of the generate-video route): supportsImages/
-// Videos/Audio, maxImages/Videos/Audio, minDuration/maxDuration, and
-// resolutions below are verified against the actual input schema shipped in
-// @fal-ai/client's type definitions (Seedance2R2VInput) — max 9 images, max 3
-// videos (combined duration 2-15s), max 3 audio files (combined duration
-// <=15s), duration 4-15s, resolutions 480p/720p. The `falEndpoint` path
-// strings for these three are NOT verified: the installed SDK's endpoint map
-// only registers Seedance v1/v1.5 paths, not v2 — v2's Input/Output types
-// exist but no endpoint ID string is published there yet. The paths below
-// follow the same naming convention as the confirmed v1/v1.5 endpoints;
-// confirm the exact string in the fal.ai dashboard before spending real
-// generation credits, and note that 2.5 is assumed (not confirmed) to share
-// 2.0's parameter shape.
+// Seedance 2.5 Reference-to-Video is verified against fal.ai's own published
+// Node.js API docs (bytedance/seedance-2.5/reference-to-video — note: no
+// fal-ai/ prefix, since ByteDance hosts this model directly under its own
+// namespace rather than fal-ai/'s). Seedance 2.0 and 2.0 Fast are
+// experimental placeholders: their falEndpoint strings were a
+// naming-convention guess (following the pattern of confirmed Seedance
+// v1/v1.5 endpoints in the installed @fal-ai/client SDK, since v2 isn't
+// registered there), and that same guessing method produced a confirmed-404
+// wrong string for 2.5 in production — so treat 2.0/2.0 Fast as wrong too
+// until their real docs are checked the same way 2.5's were.
 //
 // Kling O3 4K Video-to-Video (Reference), Kling O3 Edit Video (Pro)
 // Video-to-Video, and Kling v3 Pro Image-to-Video are the other three
@@ -102,8 +98,9 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     resolutions: ["480p", "720p"],
     requiredAsset: "any-visual",
     promptTemplateType: "reference-to-video",
-    pricingNote: "Pricing per fal.ai — confirm current rate before use.",
-    status: "enabled",
+    pricingNote:
+      "Experimental — this endpoint string was a naming-convention guess, and the same guessing method produced the confirmed-wrong Seedance 2.5 string below (a live 404), so treat this one as wrong too until verified against fal.ai's own docs.",
+    status: "experimental",
   },
   {
     id: "seedance-2-fast-reference-to-video",
@@ -122,27 +119,29 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     resolutions: ["480p", "720p"],
     requiredAsset: "any-visual",
     promptTemplateType: "reference-to-video",
-    pricingNote: "Faster/cheaper variant of Seedance 2.0 — confirm current rate before use.",
-    status: "enabled",
+    pricingNote:
+      "Experimental — this endpoint string was a naming-convention guess, and the same guessing method produced the confirmed-wrong Seedance 2.5 string below (a live 404), so treat this one as wrong too until verified against fal.ai's own docs.",
+    status: "experimental",
   },
   {
     id: "seedance-2-5-reference-to-video",
     label: "Seedance 2.5 Reference-to-Video",
-    falEndpoint: "fal-ai/bytedance/seedance/v2.5/reference-to-video",
+    falEndpoint: "bytedance/seedance-2.5/reference-to-video",
     category: "reference-to-video",
     supportsImages: true,
     supportsVideos: true,
     supportsAudio: true,
-    maxImages: 9,
-    maxVideos: 3,
-    maxAudio: 3,
+    maxImages: 30,
+    maxVideos: 10,
+    maxAudio: 10,
     minDuration: 4,
-    maxDuration: 15,
+    maxDuration: 30,
     aspectRatios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
-    resolutions: ["480p", "720p"],
+    resolutions: ["480p", "720p", "1080p"],
     requiredAsset: "any-visual",
     promptTemplateType: "reference-to-video",
-    pricingNote: "Pricing per fal.ai — assumed to match Seedance 2.0's parameter shape (unconfirmed); confirm current rate and limits before use.",
+    pricingNote:
+      "Verified against fal.ai's own published Node.js API docs. Note the real endpoint has no fal-ai/ prefix — bytedance hosts this model directly under its own namespace, unlike Kling's fal-ai/kling-video/... paths. Up to 30 images (max 30MB each), 10 videos (each 1.8-30.2s, max 200MB, combined ≤30.2s), 10 audio files (each 1.8-30.2s, max 15MB, combined ≤30.2s) — at least one image or video reference is required. Also supports a native `generate_audio` toggle, a `bitrate_mode`, and a `seed` for reproducibility; this app doesn't expose the latter two in its UI.",
     status: "enabled",
   },
   {

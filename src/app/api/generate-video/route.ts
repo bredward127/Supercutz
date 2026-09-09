@@ -31,8 +31,6 @@ function buildFalInput(input: GenerateVideoRequest, modelId: SupportedGenerateVi
       return buildKlingO3ProEditInput(input);
     case "kling-v3-pro-image-to-video":
       return buildKlingV3ProImageToVideoInput(input);
-    case "seedance-2-reference-to-video":
-    case "seedance-2-fast-reference-to-video":
     case "seedance-2-5-reference-to-video":
       return buildSeedanceReferenceToVideoInput(input);
   }

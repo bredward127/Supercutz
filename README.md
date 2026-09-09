@@ -10,14 +10,16 @@ Single-user, no accounts, no database. Everything lives in the browser tab until
 
 The page walks through four sections:
 
-1. **Model** — pick a fal.ai video model. Six have a working generation adapter: **Seedance
-   2.0**, **Seedance 2.0 Fast**, and **Seedance 2.5 Reference-to-Video** (reference-to-video,
-   accepting any mix of source video / style video / images / audio); **Kling O3 4K
-   Video-to-Video (Reference)** and **Kling O3 Edit Video (Pro) Video-to-Video** (video
-   editing — require a single source video plus up to 4 optional style images, no separate
-   audio upload); and **Kling v3 Pro Image-to-Video** (requires at least one image — the
-   first becomes the start frame, an optional second becomes the end frame). **Kling O1
-   Video-to-Video Edit** remains an experimental placeholder with no backend wiring.
+1. **Model** — pick a fal.ai video model. Four have a working generation adapter, verified
+   against fal.ai's own published API docs: **Seedance 2.5 Reference-to-Video**
+   (reference-to-video, accepting any mix of source video / style video / images / audio,
+   up to 30 images / 10 videos / 10 audio files, 4-30s); **Kling O3 4K Video-to-Video
+   (Reference)** and **Kling O3 Edit Video (Pro) Video-to-Video** (video editing — require a
+   single source video plus up to 4 optional style images, no separate audio upload); and
+   **Kling v3 Pro Image-to-Video** (requires at least one image — the first becomes the
+   start frame, an optional second becomes the end frame). **Seedance 2.0**, **Seedance 2.0
+   Fast**, and **Kling O1 Video-to-Video Edit** remain experimental placeholders with
+   unverified endpoint strings and no backend wiring — see Known limitations.
 2. **Assets** — upload a source video of yourself, an optional style/reference video, images
    (logo, product, screenshot, etc. — each tagged with a role), and optional audio. Which of
    these inputs are shown depends on the selected model — e.g. Kling's video-editing models
@@ -100,11 +102,14 @@ there's no history or gallery of past generations.
 - **Upload size**: asset uploads pass through this app's own server route before reaching
   fal.ai's storage, so on Vercel they're subject to the platform's default 4.5 MB serverless
   request body limit. Large source videos can exceed this.
-- **Seedance 2.0/2.5 endpoint IDs are unverified**: the fal.ai model IDs configured for these
-  three models follow fal's established naming convention but haven't been confirmed against
-  fal's live catalog. If generation fails immediately with a "not found"-style error, check
-  the endpoint string in `src/lib/models.ts` against your fal.ai dashboard. The three Kling
-  endpoint IDs, by contrast, are copied directly from fal.ai's own published API docs pages.
+- **Seedance 2.0 and 2.0 Fast endpoint IDs are unverified and marked experimental**: they
+  were a naming-convention guess (`fal-ai/bytedance/seedance/v2/...`), and that same
+  guessing method produced a confirmed-wrong string for Seedance 2.5 (a live 404 in
+  production — the real endpoint turned out to be `bytedance/seedance-2.5/reference-to-video`,
+  with no `fal-ai/` prefix at all). Until 2.0/2.0 Fast are checked against fal.ai's own docs
+  the same way 2.5 was, treat their endpoint strings in `src/lib/models.ts` as wrong. Seedance
+  2.5 and all three Kling endpoint IDs are copied directly from fal.ai's own published API
+  docs pages and are enabled.
 - **Aspect ratio isn't cross-validated against the model** in the Script section — an
   incompatible choice will surface as a failed generation with the server's validation
   message, rather than being caught earlier in the form. (The three Kling models are an

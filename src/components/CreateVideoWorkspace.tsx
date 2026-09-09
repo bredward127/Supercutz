@@ -9,7 +9,11 @@ import { buildAssetRoleList, type ImageAsset } from "@/lib/assets";
 import { FAL_VIDEO_MODELS, getModelById } from "@/lib/models";
 import { type AspectRatio, type DurationSelection } from "@/lib/script";
 
-const DEFAULT_MODEL_ID = FAL_VIDEO_MODELS[0]?.id ?? "";
+// The first *enabled* model, not just the first array entry — otherwise an
+// experimental placeholder (like Seedance 2.0, currently unverified) would
+// load as the default selection and show "not wired up yet" on page load.
+const DEFAULT_MODEL_ID =
+  FAL_VIDEO_MODELS.find((model) => model.status === "enabled")?.id ?? FAL_VIDEO_MODELS[0]?.id ?? "";
 const DEFAULT_DURATION: DurationSelection = 15;
 const DEFAULT_ASPECT_RATIO: AspectRatio = "9:16";
 
