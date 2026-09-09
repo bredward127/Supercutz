@@ -130,7 +130,11 @@ export default function GenerationPanel({
   }, [requestId, modelId]);
 
   const isModelSupported = model !== undefined && isSupportedGenerateVideoModelId(model.id);
-  const hasRequiredSourceVideo = !model || !model.supportsVideos || sourceVideo !== null;
+  // No specific asset is mandatory (fal's own schema only requires a
+  // prompt) — but generating with nothing to look at defeats the point of
+  // a reference-to-video model, so require at least one visual reference:
+  // a source video, a style video, or an image. Audio alone doesn't count.
+  const hasAnyVisualReference = sourceVideo !== null || styleVideo !== null || images.length > 0;
   const isDurationInRange =
     model !== undefined &&
     resolvedDuration !== null &&
@@ -138,7 +142,7 @@ export default function GenerationPanel({
     resolvedDuration <= model.maxDuration;
   const isPromptFilled = prompt.trim().length > 0;
   const canGenerate =
-    model !== undefined && isModelSupported && hasRequiredSourceVideo && isDurationInRange && isPromptFilled;
+    model !== undefined && isModelSupported && hasAnyVisualReference && isDurationInRange && isPromptFilled;
   const isBusy = phase !== "idle" && phase !== "ready" && phase !== "failed";
 
   const handleGenerateVideo = async () => {
@@ -214,8 +218,8 @@ export default function GenerationPanel({
               {model && !isModelSupported && (
                 <li>{model.label} doesn&apos;t have video generation wired up yet — pick a Seedance model.</li>
               )}
-              {model && isModelSupported && !hasRequiredSourceVideo && (
-                <li>Upload a source video — required for {model.label}.</li>
+              {model && isModelSupported && !hasAnyVisualReference && (
+                <li>Upload at least one image or video so the model has something to reference.</li>
               )}
               {model && !isDurationInRange && (
                 <li>
