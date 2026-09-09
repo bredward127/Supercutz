@@ -28,19 +28,31 @@ The page walks through four sections:
 
 ## Environment variables
 
-Two, both server-only — neither is ever sent to the browser (no `NEXT_PUBLIC_` prefix, no
+Three, all server-only — none are ever sent to the browser (no `NEXT_PUBLIC_` prefix, no
 client-side reference):
 
 | Variable | Used for | Get one at |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Claude API calls (script generation, transcript reformatting, script resizing) | https://console.anthropic.com/settings/keys |
 | `FAL_KEY` | fal.ai calls (asset uploads, video generation, status polling) | https://fal.ai/dashboard/keys |
+| `SITE_PASSWORD` | Gates the whole app behind one shared password (see below) | pick your own |
 
-Copy `.env.example` to `.env.local` and fill both in:
+Copy `.env.example` to `.env.local` and fill all three in:
 
 ```bash
 cp .env.example .env.local
 ```
+
+### Access gate
+
+`src/proxy.ts` puts the entire app — the page and every `/api/*` route — behind HTTP Basic
+Auth, checked against `SITE_PASSWORD`. This exists so a stranger who finds your deployed URL
+can't reach the API routes and burn through your Anthropic/fal.ai credits. There's no
+username; your browser will prompt for one anyway, but only the password is checked.
+
+**It fails closed**: if `SITE_PASSWORD` isn't set, every request is denied — including your
+own — rather than the app being left open. If you ever forget the password, go to Vercel →
+your project → Settings → Environment Variables, update `SITE_PASSWORD`, and redeploy.
 
 ## Running locally
 
@@ -63,8 +75,8 @@ npm run build       # production build (also type-checks)
 
 1. Push this repo to GitHub (or import it directly into Vercel from a Git provider).
 2. In Vercel, import the project — it's auto-detected as Next.js, no build configuration needed.
-3. Add the two environment variables above (`ANTHROPIC_API_KEY`, `FAL_KEY`) under
-   Project Settings → Environment Variables.
+3. Add the three environment variables above (`ANTHROPIC_API_KEY`, `FAL_KEY`,
+   `SITE_PASSWORD`) under Project Settings → Environment Variables.
 4. Deploy.
 
 No database, KV store, or Blob storage is needed — this version doesn't use any.
