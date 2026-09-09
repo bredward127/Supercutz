@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getJson, postJson } from "@/lib/api-client";
 import type { ImageAsset } from "@/lib/assets";
 import { uploadAssetsForGeneration } from "@/lib/generation-client";
-import type { GenerateVideoResponse } from "@/lib/generate-video-api";
+import { isSupportedGenerateVideoModelId, type GenerateVideoResponse } from "@/lib/generate-video-api";
 import type { GenerationStatusResponse } from "@/lib/generation-status-api";
 import { getModelById } from "@/lib/models";
 import { resolveTargetDurationSeconds, type DurationSelection } from "@/lib/script";
@@ -129,6 +129,7 @@ export default function GenerationPanel({
     };
   }, [requestId, modelId]);
 
+  const isModelSupported = model !== undefined && isSupportedGenerateVideoModelId(model.id);
   const hasRequiredSourceVideo = !model || !model.supportsVideos || sourceVideo !== null;
   const isDurationInRange =
     model !== undefined &&
@@ -136,7 +137,8 @@ export default function GenerationPanel({
     resolvedDuration >= model.minDuration &&
     resolvedDuration <= model.maxDuration;
   const isPromptFilled = prompt.trim().length > 0;
-  const canGenerate = model !== undefined && hasRequiredSourceVideo && isDurationInRange && isPromptFilled;
+  const canGenerate =
+    model !== undefined && isModelSupported && hasRequiredSourceVideo && isDurationInRange && isPromptFilled;
   const isBusy = phase !== "idle" && phase !== "ready" && phase !== "failed";
 
   const handleGenerateVideo = async () => {
@@ -209,7 +211,10 @@ export default function GenerationPanel({
           {!canGenerate && (
             <ul className="list-inside list-disc text-xs text-zinc-500 dark:text-zinc-400">
               {!model && <li>Select a model.</li>}
-              {model && !hasRequiredSourceVideo && (
+              {model && !isModelSupported && (
+                <li>{model.label} doesn&apos;t have video generation wired up yet — pick a Seedance model.</li>
+              )}
+              {model && isModelSupported && !hasRequiredSourceVideo && (
                 <li>Upload a source video — required for {model.label}.</li>
               )}
               {model && !isDurationInRange && (

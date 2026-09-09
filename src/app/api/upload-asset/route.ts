@@ -14,8 +14,8 @@ export const maxDuration = 60;
 // Known limitation: the file bytes pass through this Next.js route handler,
 // so on Vercel they're subject to the platform's serverless function request
 // body size limit (4.5 MB by default). Real source videos can exceed that —
-// if uploads start failing on size once this is wired to the UI, the fix is
-// a direct-to-storage flow instead of routing bytes through here.
+// if uploads start failing on size, the fix is a direct-to-storage flow
+// instead of routing bytes through here.
 export async function POST(request: Request) {
   const formData = await request.formData().catch(() => null);
   if (!formData) {

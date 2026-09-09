@@ -1,3 +1,4 @@
+import "server-only";
 import { parseBuildPromptRequest } from "@/lib/build-prompt-api";
 import { getModelById } from "@/lib/models";
 import { buildModelPrompt } from "@/lib/prompt-builder";
