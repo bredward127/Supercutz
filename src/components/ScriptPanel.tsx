@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { postJson } from "@/lib/api-client";
 import {
+  CUSTOM_ENVIRONMENT_PRESET_ID,
+  ENVIRONMENT_PRESETS,
+  getEnvironmentPresetById,
+} from "@/lib/environment-presets";
+import {
   ASPECT_RATIO_OPTIONS,
   DURATION_PRESETS,
   resolveTargetDurationSeconds,
@@ -60,11 +65,17 @@ export default function ScriptPanel({
   const [script, setScript] = useState("");
   const [productionScript, setProductionScript] = useState("");
 
+  const [environmentPresetId, setEnvironmentPresetId] = useState(CUSTOM_ENVIRONMENT_PRESET_ID);
   const [environmentDescription, setEnvironmentDescription] = useState("");
   const [objectReplacementDescription, setObjectReplacementDescription] = useState("");
 
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const handleEnvironmentPresetChange = (id: string) => {
+    setEnvironmentPresetId(id);
+    setEnvironmentDescription(id === CUSTOM_ENVIRONMENT_PRESET_ID ? "" : (getEnvironmentPresetById(id)?.prompt ?? ""));
+  };
 
   const handleGenerateScript = async () => {
     const targetDurationSeconds = resolveTargetDurationSeconds(duration, customDuration);
@@ -348,6 +359,18 @@ export default function ScriptPanel({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Environment description
+          <select
+            value={environmentPresetId}
+            onChange={(event) => handleEnvironmentPresetChange(event.target.value)}
+            className={selectClassName}
+          >
+            <option value={CUSTOM_ENVIRONMENT_PRESET_ID}>Custom</option>
+            {ENVIRONMENT_PRESETS.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.label}
+              </option>
+            ))}
+          </select>
           <textarea
             value={environmentDescription}
             onChange={(event) => setEnvironmentDescription(event.target.value)}
