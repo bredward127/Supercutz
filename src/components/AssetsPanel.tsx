@@ -1,13 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { IMAGE_ROLE_OPTIONS, type AssetsSummary, type ImageRole } from "@/lib/assets";
-
-interface ImageAsset {
-  id: string;
-  file: File;
-  role: ImageRole;
-}
+import { IMAGE_ROLE_OPTIONS, type ImageAsset, type ImageRole } from "@/lib/assets";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -33,27 +26,26 @@ const fileInputClassName =
   "mt-1 block w-full text-sm text-zinc-600 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-zinc-700 dark:text-zinc-400 dark:file:bg-zinc-100 dark:file:text-zinc-900";
 
 interface AssetsPanelProps {
-  // Reports the current set of uploaded assets (presence of each video/audio
-  // slot, plus the ordered list of image roles) so the Script section can
-  // tell Claude/the prompt builder what's available.
-  onAssetsChange?: (summary: AssetsSummary) => void;
+  sourceVideo: File | null;
+  onSourceVideoChange: (file: File | null) => void;
+  styleVideo: File | null;
+  onStyleVideoChange: (file: File | null) => void;
+  images: ImageAsset[];
+  onImagesChange: (images: ImageAsset[]) => void;
+  audio: File | null;
+  onAudioChange: (file: File | null) => void;
 }
 
-export default function AssetsPanel({ onAssetsChange }: AssetsPanelProps) {
-  const [sourceVideo, setSourceVideo] = useState<File | null>(null);
-  const [styleVideo, setStyleVideo] = useState<File | null>(null);
-  const [images, setImages] = useState<ImageAsset[]>([]);
-  const [audio, setAudio] = useState<File | null>(null);
-
-  useEffect(() => {
-    onAssetsChange?.({
-      hasSourceVideo: sourceVideo !== null,
-      hasStyleVideo: styleVideo !== null,
-      hasAudio: audio !== null,
-      imageRoles: images.map((image) => image.role),
-    });
-  }, [sourceVideo, styleVideo, audio, images, onAssetsChange]);
-
+export default function AssetsPanel({
+  sourceVideo,
+  onSourceVideoChange,
+  styleVideo,
+  onStyleVideoChange,
+  images,
+  onImagesChange,
+  audio,
+  onAudioChange,
+}: AssetsPanelProps) {
   const handleImagesSelected = (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
     const newImages: ImageAsset[] = Array.from(fileList).map((file) => ({
@@ -61,20 +53,18 @@ export default function AssetsPanel({ onAssetsChange }: AssetsPanelProps) {
       file,
       role: "other",
     }));
-    setImages((prev) => [...prev, ...newImages]);
+    onImagesChange([...images, ...newImages]);
   };
 
   const updateImageRole = (id: string, role: ImageRole) => {
-    setImages((prev) =>
-      prev.map((image) => (image.id === id ? { ...image, role } : image))
-    );
+    onImagesChange(images.map((image) => (image.id === id ? { ...image, role } : image)));
   };
 
   const clearAll = () => {
-    setSourceVideo(null);
-    setStyleVideo(null);
-    setImages([]);
-    setAudio(null);
+    onSourceVideoChange(null);
+    onStyleVideoChange(null);
+    onImagesChange([]);
+    onAudioChange(null);
   };
 
   const hasAnyAsset = Boolean(sourceVideo) || Boolean(styleVideo) || images.length > 0 || Boolean(audio);
@@ -87,7 +77,7 @@ export default function AssetsPanel({ onAssetsChange }: AssetsPanelProps) {
           <input
             type="file"
             accept="video/*"
-            onChange={(event) => setSourceVideo(event.target.files?.[0] ?? null)}
+            onChange={(event) => onSourceVideoChange(event.target.files?.[0] ?? null)}
             className={fileInputClassName}
           />
         </label>
@@ -101,7 +91,7 @@ export default function AssetsPanel({ onAssetsChange }: AssetsPanelProps) {
           <input
             type="file"
             accept="video/*"
-            onChange={(event) => setStyleVideo(event.target.files?.[0] ?? null)}
+            onChange={(event) => onStyleVideoChange(event.target.files?.[0] ?? null)}
             className={fileInputClassName}
           />
         </label>
@@ -158,7 +148,7 @@ export default function AssetsPanel({ onAssetsChange }: AssetsPanelProps) {
           <input
             type="file"
             accept="audio/*"
-            onChange={(event) => setAudio(event.target.files?.[0] ?? null)}
+            onChange={(event) => onAudioChange(event.target.files?.[0] ?? null)}
             className={fileInputClassName}
           />
         </label>

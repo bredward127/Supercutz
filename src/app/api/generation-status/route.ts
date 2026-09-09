@@ -1,5 +1,6 @@
 import "server-only";
 import { assertFalKeyConfigured, fal, falErrorResponse } from "@/lib/fal";
+import type { GenerationStatusResponse } from "@/lib/generation-status-api";
 import { getModelById } from "@/lib/models";
 
 export const maxDuration = 30;
@@ -31,35 +32,44 @@ export async function GET(request: Request) {
     const status = await fal.queue.status(model.falEndpoint, { requestId, logs: true });
 
     if (status.status === "IN_QUEUE") {
-      return Response.json({ state: "queued", queuePosition: status.queue_position });
+      const body: GenerationStatusResponse = { state: "queued", queuePosition: status.queue_position };
+      return Response.json(body);
     }
 
     if (status.status === "IN_PROGRESS") {
-      return Response.json({ state: "in-progress", logs: status.logs.map((log) => log.message) });
+      const body: GenerationStatusResponse = {
+        state: "in-progress",
+        logs: status.logs.map((log) => log.message),
+      };
+      return Response.json(body);
     }
 
     if (status.status === "COMPLETED") {
       const result = await fal.queue.result(model.falEndpoint, { requestId });
       const videoUrl = extractVideoUrl(result.data);
       if (!videoUrl) {
-        return Response.json(
-          { state: "failed", error: "Generation completed but no video URL was found in the result." },
-          { status: 502 }
-        );
+        const body: GenerationStatusResponse = {
+          state: "failed",
+          error: "Generation completed but no video URL was found in the result.",
+        };
+        return Response.json(body, { status: 502 });
       }
-      return Response.json({ state: "completed", videoUrl });
+      const body: GenerationStatusResponse = { state: "completed", videoUrl };
+      return Response.json(body);
     }
 
     // Defensive fallback: the installed SDK's QueueStatus union only
     // enumerates IN_QUEUE/IN_PROGRESS/COMPLETED, but the live API may report
     // other values (e.g. a literal FAILED) that this client version doesn't
     // type — treat anything unrecognized as failed rather than crashing.
-    return Response.json(
-      { state: "failed", error: `Unrecognized status from fal.ai: ${(status as { status: string }).status}` },
-      { status: 502 }
-    );
+    const fallbackBody: GenerationStatusResponse = {
+      state: "failed",
+      error: `Unrecognized status from fal.ai: ${(status as { status: string }).status}`,
+    };
+    return Response.json(fallbackBody, { status: 502 });
   } catch (error) {
     const { status: httpStatus, error: message } = falErrorResponse(error);
-    return Response.json({ state: "failed", error: message }, { status: httpStatus });
+    const body: GenerationStatusResponse = { state: "failed", error: message };
+    return Response.json(body, { status: httpStatus });
   }
 }

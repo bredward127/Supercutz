@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { postJson } from "@/lib/api-client";
 import {
   ASPECT_RATIO_OPTIONS,
   DURATION_PRESETS,
+  resolveTargetDurationSeconds,
   type AspectRatio,
   type DurationPreset,
   type DurationSelection,
@@ -22,46 +24,32 @@ const buttonClassName =
 
 type PendingAction = "generate" | "reformat" | "resize" | "build-prompt" | null;
 
-function resolveTargetDurationSeconds(
-  duration: DurationSelection,
-  customDuration: string
-): number | null {
-  if (duration === "custom") {
-    const parsed = Number(customDuration);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-  }
-  return duration;
-}
-
-async function postJson<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const message =
-      data && typeof data === "object" && typeof (data as { error?: unknown }).error === "string"
-        ? (data as { error: string }).error
-        : `Request failed with status ${response.status}.`;
-    throw new Error(message);
-  }
-
-  return data as T;
-}
-
 interface ScriptPanelProps {
   availableAssetLabels: string[];
   selectedModelId: string;
   assetRoles: string[];
+  duration: DurationSelection;
+  onDurationChange: (duration: DurationSelection) => void;
+  customDuration: string;
+  onCustomDurationChange: (value: string) => void;
+  aspectRatio: AspectRatio;
+  onAspectRatioChange: (ratio: AspectRatio) => void;
+  generatedPrompt: string;
+  onGeneratedPromptChange: (prompt: string) => void;
 }
 
 export default function ScriptPanel({
   availableAssetLabels,
   selectedModelId,
   assetRoles,
+  duration,
+  onDurationChange,
+  customDuration,
+  onCustomDurationChange,
+  aspectRatio,
+  onAspectRatioChange,
+  generatedPrompt,
+  onGeneratedPromptChange,
 }: ScriptPanelProps) {
   const [campaignType, setCampaignType] = useState("");
   const [offer, setOffer] = useState("");
@@ -69,16 +57,11 @@ export default function ScriptPanel({
   const [audience, setAudience] = useState("");
   const [tone, setTone] = useState("");
 
-  const [duration, setDuration] = useState<DurationSelection>(15);
-  const [customDuration, setCustomDuration] = useState("");
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("9:16");
-
   const [script, setScript] = useState("");
   const [productionScript, setProductionScript] = useState("");
 
   const [environmentDescription, setEnvironmentDescription] = useState("");
   const [objectReplacementDescription, setObjectReplacementDescription] = useState("");
-  const [generatedPrompt, setGeneratedPrompt] = useState("");
 
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [error, setError] = useState<string | null>(null);
@@ -188,7 +171,7 @@ export default function ScriptPanel({
         productionScript,
         assetRoles,
       });
-      setGeneratedPrompt(prompt);
+      onGeneratedPromptChange(prompt);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -264,7 +247,7 @@ export default function ScriptPanel({
             value={String(duration)}
             onChange={(event) => {
               const value = event.target.value;
-              setDuration(value === "custom" ? "custom" : (Number(value) as DurationPreset));
+              onDurationChange(value === "custom" ? "custom" : (Number(value) as DurationPreset));
             }}
             className={selectClassName}
           >
@@ -281,7 +264,7 @@ export default function ScriptPanel({
           Aspect ratio
           <select
             value={aspectRatio}
-            onChange={(event) => setAspectRatio(event.target.value as AspectRatio)}
+            onChange={(event) => onAspectRatioChange(event.target.value as AspectRatio)}
             className={selectClassName}
           >
             {ASPECT_RATIO_OPTIONS.map((ratio) => (
@@ -299,7 +282,7 @@ export default function ScriptPanel({
               type="number"
               min={1}
               value={customDuration}
-              onChange={(event) => setCustomDuration(event.target.value)}
+              onChange={(event) => onCustomDurationChange(event.target.value)}
               placeholder="e.g. 20"
               className={selectClassName}
             />
@@ -399,7 +382,7 @@ export default function ScriptPanel({
         Generation Prompt
         <textarea
           value={generatedPrompt}
-          onChange={(event) => setGeneratedPrompt(event.target.value)}
+          onChange={(event) => onGeneratedPromptChange(event.target.value)}
           rows={16}
           placeholder="The model-ready prompt will appear here after you click Build Prompt. You can edit it before generation."
           className={textareaClassName}

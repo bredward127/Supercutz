@@ -16,6 +16,12 @@ export const IMAGE_ROLE_OPTIONS: { value: ImageRole; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
+export interface ImageAsset {
+  id: string;
+  file: File;
+  role: ImageRole;
+}
+
 // Maps AssetsPanel's ImageRole values to the wire-format role vocabulary
 // the build-prompt API expects (see src/lib/asset-roles.ts).
 const IMAGE_ROLE_TO_ASSET_ROLE: Record<ImageRole, string> = {
