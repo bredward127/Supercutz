@@ -45,16 +45,23 @@ export default function CreateVideoWorkspace() {
     () => Array.from(new Set(images.map((image) => image.role))),
     [images]
   );
-  const assetRoles = useMemo(
-    () =>
-      buildAssetRoleList({
-        hasSourceVideo: sourceVideo !== null,
-        hasStyleVideo: styleVideo !== null,
-        hasAudio: audio !== null,
-        imageRoles: images.map((image) => image.role),
-      }),
-    [sourceVideo, styleVideo, audio, images]
-  );
+  // Filtered by the selected model's actual capabilities — otherwise
+  // switching models after uploading assets (e.g. from Seedance, which
+  // takes a style video and audio, to a Kling model that takes neither)
+  // leaves stale @VideoN/@AudioN/@ImageN references in the built prompt
+  // for assets the new model will never actually receive, which fal
+  // rejects outright rather than ignoring.
+  const assetRoles = useMemo(() => {
+    const maxVideos = selectedModel?.maxVideos ?? Infinity;
+    const maxImages = selectedModel?.maxImages ?? images.length;
+    const audioSupported = selectedModel?.supportsAudio ?? true;
+    return buildAssetRoleList({
+      hasSourceVideo: sourceVideo !== null && maxVideos >= 1,
+      hasStyleVideo: styleVideo !== null && maxVideos >= 2,
+      hasAudio: audio !== null && audioSupported,
+      imageRoles: images.slice(0, maxImages).map((image) => image.role),
+    });
+  }, [sourceVideo, styleVideo, audio, images, selectedModel]);
 
   const handleStartNewVideo = () => {
     setSelectedModelId(DEFAULT_MODEL_ID);

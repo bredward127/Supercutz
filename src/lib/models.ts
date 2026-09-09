@@ -74,6 +74,14 @@ export interface FalVideoModel {
   // empty selection.
   aspectRatios: string[];
   resolutions: string[];
+  // Whether uploaded images are resolved via an indexed @ImageN array in
+  // the prompt (image_urls) or consumed positionally by the adapter
+  // instead (e.g. Kling's image-to-video model takes start_image_url /
+  // end_image_url — there is no image_urls array to resolve a reference
+  // against, and fal rejects the request outright if the prompt contains
+  // one anyway). prompt-builder.ts uses this to decide whether to emit an
+  // @ImageN tag or a plain positional label for each uploaded image.
+  supportsImageReferenceTags: boolean;
   // undefined means no known cap. Kling enforces a hard 2500-character
   // limit on `prompt` server-side (confirmed by a live "String should have
   // at most 2500 characters" rejection on the O3 endpoints, and stated
@@ -104,6 +112,7 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     aspectRatios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
     resolutions: ["480p", "720p"],
     requiredAsset: "any-visual",
+    supportsImageReferenceTags: true,
     promptTemplateType: "reference-to-video",
     pricingNote:
       "Experimental — this endpoint string was a naming-convention guess, and the same guessing method produced the confirmed-wrong Seedance 2.5 string below (a live 404), so treat this one as wrong too until verified against fal.ai's own docs.",
@@ -125,6 +134,7 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     aspectRatios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
     resolutions: ["480p", "720p"],
     requiredAsset: "any-visual",
+    supportsImageReferenceTags: true,
     promptTemplateType: "reference-to-video",
     pricingNote:
       "Experimental — this endpoint string was a naming-convention guess, and the same guessing method produced the confirmed-wrong Seedance 2.5 string below (a live 404), so treat this one as wrong too until verified against fal.ai's own docs.",
@@ -146,6 +156,7 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     aspectRatios: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
     resolutions: ["480p", "720p", "1080p"],
     requiredAsset: "any-visual",
+    supportsImageReferenceTags: true,
     promptTemplateType: "reference-to-video",
     pricingNote:
       "Verified against fal.ai's own published Node.js API docs. Note the real endpoint has no fal-ai/ prefix — bytedance hosts this model directly under its own namespace, unlike Kling's fal-ai/kling-video/... paths. Up to 30 images (max 30MB each), 10 videos (each 1.8-30.2s, max 200MB, combined ≤30.2s), 10 audio files (each 1.8-30.2s, max 15MB, combined ≤30.2s) — at least one image or video reference is required. Also supports a native `generate_audio` toggle, a `bitrate_mode`, and a `seed` for reproducibility; this app doesn't expose the latter two in its UI.",
@@ -167,6 +178,7 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     aspectRatios: ["16:9", "9:16", "1:1"],
     resolutions: ["720p"],
     requiredAsset: "video",
+    supportsImageReferenceTags: true,
     promptTemplateType: "video-edit",
     pricingNote: "Experimental — no working adapter yet; endpoint ID confirmed against the installed SDK, but schema not checked against fal.ai's docs.",
     status: "experimental",
@@ -188,6 +200,7 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     resolutions: [],
     maxPromptLength: 2500,
     requiredAsset: "video",
+    supportsImageReferenceTags: true,
     promptTemplateType: "video-edit",
     pricingNote:
       "Native 4K output in one step. Requires one source video (3-15s, 720-3840px, max 200MB); up to 4 style/appearance images. Preserves the source video's own audio (keep_audio) rather than accepting a separate audio upload.",
@@ -210,6 +223,7 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     resolutions: [],
     maxPromptLength: 2500,
     requiredAsset: "video",
+    supportsImageReferenceTags: true,
     promptTemplateType: "video-edit",
     pricingNote:
       "Requires one source video (3-15s, 720-3840px, max 200MB); up to 4 style/appearance images. Output duration and aspect ratio follow the source video — this endpoint has no duration/aspect_ratio parameter to set.",
@@ -232,6 +246,11 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     resolutions: [],
     maxPromptLength: 2500,
     requiredAsset: "image",
+    // This model has no image_urls array — images are consumed
+    // positionally (start_image_url / end_image_url), so an @ImageN tag
+    // in the prompt gets validated by fal against an image list that was
+    // never sent and rejected outright.
+    supportsImageReferenceTags: false,
     promptTemplateType: "image-to-video",
     pricingNote:
       "Cinematic image-to-video with native audio generation. The first uploaded image is the starting frame; a second (optional) becomes the end frame. Generates its own native audio (generate_audio) rather than accepting an audio upload. No resolution or aspect_ratio parameter.",

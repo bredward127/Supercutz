@@ -24,16 +24,27 @@ export interface AssetReference {
   category: AssetCategory;
 }
 
-export function buildAssetReferences(assetRoles: string[]): AssetReference[] {
+// Positional labels for models where images aren't resolved via an indexed
+// @ImageN array in the prompt (see FalVideoModel.supportsImageReferenceTags)
+// — e.g. Kling's image-to-video model takes a start_image_url /
+// end_image_url instead, and fal rejects the request outright if the
+// prompt contains an @ImageN tag it has no image_urls list to resolve.
+const POSITIONAL_IMAGE_LABELS = ["the starting frame", "the ending frame"];
+
+export function buildAssetReferences(assetRoles: string[], model: FalVideoModel): AssetReference[] {
   const counters: Record<AssetCategory, number> = { video: 0, image: 0, audio: 0 };
   const tagPrefix: Record<AssetCategory, string> = { video: "Video", image: "Image", audio: "Audio" };
 
   return assetRoles.map((role) => {
     const info = categorizeAssetRole(role);
     counters[info.category] += 1;
+    const tag =
+      info.category === "image" && !model.supportsImageReferenceTags
+        ? (POSITIONAL_IMAGE_LABELS[counters.image - 1] ?? `image ${counters.image}`)
+        : `@${tagPrefix[info.category]}${counters[info.category]}`;
     return {
       role,
-      tag: `@${tagPrefix[info.category]}${counters[info.category]}`,
+      tag,
       label: info.label,
       description: info.description,
       category: info.category,
@@ -89,6 +100,10 @@ export function parseScriptBeats(script: string): ScriptBeat[] {
 function buildSourcePreservation(refs: AssetReference[], model: FalVideoModel): string {
   const sourceVideo = refs.find((ref) => ref.role === "source_video");
   const styleVideo = refs.find((ref) => ref.role === "style_video");
+  // Image-to-video models have no source video at all — the first uploaded
+  // image anchors the generation instead (it becomes start_image_url).
+  const startFrameImage =
+    model.requiredAsset === "image" ? refs.find((ref) => ref.category === "image") : undefined;
   const lines: string[] = [];
 
   if (sourceVideo) {
@@ -96,6 +111,10 @@ function buildSourcePreservation(refs: AssetReference[], model: FalVideoModel): 
       `${sourceVideo.tag} is the source video${
         model.category === "video-edit" ? " to edit in place" : ", used as the driving reference for the new generation"
       }. Preserve the exact identity, facial features, skin tone, body proportions, wardrobe, and voice of the presenter shown in ${sourceVideo.tag}. Do not regenerate, restyle, or replace the presenter — every frame must remain recognizably the same person performing the same actions captured in ${sourceVideo.tag}.`
+    );
+  } else if (startFrameImage) {
+    lines.push(
+      `This generation animates forward from ${startFrameImage.tag}. Preserve the exact identity, setting, and framing shown there unless a later section explicitly calls for a change.`
     );
   } else {
     lines.push(
@@ -248,7 +267,7 @@ function buildNegativeConstraints(input: BuildPromptRequest, model: FalVideoMode
 }
 
 export function buildModelPrompt(input: BuildPromptRequest, model: FalVideoModel): string {
-  const refs = buildAssetReferences(input.assetRoles);
+  const refs = buildAssetReferences(input.assetRoles, model);
   const beats = parseScriptBeats(input.productionScript);
 
   const sections: Array<[string, string]> = [
