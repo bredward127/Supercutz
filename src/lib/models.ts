@@ -74,6 +74,13 @@ export interface FalVideoModel {
   // empty selection.
   aspectRatios: string[];
   resolutions: string[];
+  // undefined means no known cap. Kling enforces a hard 2500-character
+  // limit on `prompt` server-side (confirmed by a live "String should have
+  // at most 2500 characters" rejection on the O3 endpoints, and stated
+  // directly in fal's docs for several of Kling's other request variants) —
+  // this app's deterministic build-prompt template can easily exceed that
+  // for a detailed script, so it's worth catching before submission.
+  maxPromptLength?: number;
   requiredAsset: RequiredAssetKind;
   promptTemplateType: PromptTemplateType;
   pricingNote: string;
@@ -179,6 +186,7 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     maxDuration: 15,
     aspectRatios: ["auto", "16:9", "9:16", "1:1"],
     resolutions: [],
+    maxPromptLength: 2500,
     requiredAsset: "video",
     promptTemplateType: "video-edit",
     pricingNote:
@@ -200,6 +208,7 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     maxDuration: 15,
     aspectRatios: [],
     resolutions: [],
+    maxPromptLength: 2500,
     requiredAsset: "video",
     promptTemplateType: "video-edit",
     pricingNote:
@@ -221,6 +230,7 @@ export const FAL_VIDEO_MODELS: FalVideoModel[] = [
     maxDuration: 15,
     aspectRatios: [],
     resolutions: [],
+    maxPromptLength: 2500,
     requiredAsset: "image",
     promptTemplateType: "image-to-video",
     pricingNote:

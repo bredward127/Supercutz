@@ -151,8 +151,14 @@ export default function GenerationPanel({
     resolvedDuration >= model.minDuration &&
     resolvedDuration <= model.maxDuration;
   const isPromptFilled = prompt.trim().length > 0;
+  const isPromptWithinLimit = model === undefined || model.maxPromptLength === undefined || prompt.length <= model.maxPromptLength;
   const canGenerate =
-    model !== undefined && isModelSupported && hasRequiredAsset && isDurationInRange && isPromptFilled;
+    model !== undefined &&
+    isModelSupported &&
+    hasRequiredAsset &&
+    isDurationInRange &&
+    isPromptFilled &&
+    isPromptWithinLimit;
   const isBusy = phase !== "idle" && phase !== "ready" && phase !== "failed";
 
   const handleGenerateVideo = async () => {
@@ -251,6 +257,12 @@ export default function GenerationPanel({
                 </li>
               )}
               {!isPromptFilled && <li>Build or write a generation prompt first.</li>}
+              {model && isPromptFilled && !isPromptWithinLimit && (
+                <li>
+                  {model.label} limits prompts to {model.maxPromptLength} characters; yours is{" "}
+                  {prompt.length}. Trim it in the Script section.
+                </li>
+              )}
             </ul>
           )}
         </div>

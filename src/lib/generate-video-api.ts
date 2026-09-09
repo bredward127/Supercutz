@@ -83,6 +83,12 @@ export function validateAgainstModel(input: GenerateVideoRequest, model: FalVide
   const errors: string[] = [];
   const { images, videos, audio } = input.assetUrls;
 
+  if (model.maxPromptLength !== undefined && input.prompt.length > model.maxPromptLength) {
+    errors.push(
+      `${model.label} limits prompts to ${model.maxPromptLength} characters; yours is ${input.prompt.length}. Trim it in the Script section before generating.`
+    );
+  }
+
   if (images.length > 0 && !model.supportsImages) {
     errors.push(`${model.label} does not accept image inputs.`);
   } else if (images.length > model.maxImages) {
