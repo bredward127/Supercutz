@@ -1,5 +1,4 @@
 import CreateVideoWorkspace from "@/components/CreateVideoWorkspace";
-import ModelSelector from "@/components/ModelSelector";
 
 export default function CreateVideoPage() {
   return (
@@ -10,13 +9,6 @@ export default function CreateVideoPage() {
           Generate an AI ad video from your footage, references, and a script.
         </p>
       </header>
-
-      <section className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-          Model
-        </h2>
-        <ModelSelector />
-      </section>
 
       <CreateVideoWorkspace />
 

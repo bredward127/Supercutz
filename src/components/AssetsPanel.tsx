@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { IMAGE_ROLE_OPTIONS, type ImageRole } from "@/lib/assets";
+import { IMAGE_ROLE_OPTIONS, type AssetsSummary, type ImageRole } from "@/lib/assets";
 
 interface ImageAsset {
   id: string;
@@ -33,20 +33,26 @@ const fileInputClassName =
   "mt-1 block w-full text-sm text-zinc-600 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-zinc-700 dark:text-zinc-400 dark:file:bg-zinc-100 dark:file:text-zinc-900";
 
 interface AssetsPanelProps {
-  // Reports the distinct set of role labels among uploaded images, so the
-  // Script section can tell Claude what's available to show on screen.
-  onImageLabelsChange?: (labels: string[]) => void;
+  // Reports the current set of uploaded assets (presence of each video/audio
+  // slot, plus the ordered list of image roles) so the Script section can
+  // tell Claude/the prompt builder what's available.
+  onAssetsChange?: (summary: AssetsSummary) => void;
 }
 
-export default function AssetsPanel({ onImageLabelsChange }: AssetsPanelProps) {
+export default function AssetsPanel({ onAssetsChange }: AssetsPanelProps) {
   const [sourceVideo, setSourceVideo] = useState<File | null>(null);
   const [styleVideo, setStyleVideo] = useState<File | null>(null);
   const [images, setImages] = useState<ImageAsset[]>([]);
   const [audio, setAudio] = useState<File | null>(null);
 
   useEffect(() => {
-    onImageLabelsChange?.(Array.from(new Set(images.map((image) => image.role))));
-  }, [images, onImageLabelsChange]);
+    onAssetsChange?.({
+      hasSourceVideo: sourceVideo !== null,
+      hasStyleVideo: styleVideo !== null,
+      hasAudio: audio !== null,
+      imageRoles: images.map((image) => image.role),
+    });
+  }, [sourceVideo, styleVideo, audio, images, onAssetsChange]);
 
   const handleImagesSelected = (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;

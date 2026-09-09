@@ -20,7 +20,7 @@ const textareaClassName =
 const buttonClassName =
   "rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800";
 
-type PendingAction = "generate" | "reformat" | "resize" | null;
+type PendingAction = "generate" | "reformat" | "resize" | "build-prompt" | null;
 
 function resolveTargetDurationSeconds(
   duration: DurationSelection,
@@ -33,7 +33,7 @@ function resolveTargetDurationSeconds(
   return duration;
 }
 
-async function callScriptApi(path: string, body: unknown): Promise<string> {
+async function postJson<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -49,18 +49,20 @@ async function callScriptApi(path: string, body: unknown): Promise<string> {
     throw new Error(message);
   }
 
-  if (!data || typeof (data as { script?: unknown }).script !== "string") {
-    throw new Error("Unexpected response shape from server.");
-  }
-
-  return (data as { script: string }).script;
+  return data as T;
 }
 
 interface ScriptPanelProps {
   availableAssetLabels: string[];
+  selectedModelId: string;
+  assetRoles: string[];
 }
 
-export default function ScriptPanel({ availableAssetLabels }: ScriptPanelProps) {
+export default function ScriptPanel({
+  availableAssetLabels,
+  selectedModelId,
+  assetRoles,
+}: ScriptPanelProps) {
   const [campaignType, setCampaignType] = useState("");
   const [offer, setOffer] = useState("");
   const [cta, setCta] = useState("");
@@ -74,6 +76,10 @@ export default function ScriptPanel({ availableAssetLabels }: ScriptPanelProps) 
   const [script, setScript] = useState("");
   const [productionScript, setProductionScript] = useState("");
 
+  const [environmentDescription, setEnvironmentDescription] = useState("");
+  const [objectReplacementDescription, setObjectReplacementDescription] = useState("");
+  const [generatedPrompt, setGeneratedPrompt] = useState("");
+
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,7 +92,7 @@ export default function ScriptPanel({ availableAssetLabels }: ScriptPanelProps) 
     setError(null);
     setPendingAction("generate");
     try {
-      const result = await callScriptApi("/api/generate-script", {
+      const { script: result } = await postJson<{ script: string }>("/api/generate-script", {
         campaignType,
         offer,
         cta,
@@ -116,7 +122,7 @@ export default function ScriptPanel({ availableAssetLabels }: ScriptPanelProps) 
     setError(null);
     setPendingAction("reformat");
     try {
-      const result = await callScriptApi("/api/reformat-transcript", {
+      const { script: result } = await postJson<{ script: string }>("/api/reformat-transcript", {
         campaignType,
         offer,
         cta,
@@ -147,11 +153,42 @@ export default function ScriptPanel({ availableAssetLabels }: ScriptPanelProps) 
     setError(null);
     setPendingAction("resize");
     try {
-      const result = await callScriptApi("/api/resize-script", {
+      const { script: result } = await postJson<{ script: string }>("/api/resize-script", {
         script: productionScript,
         targetDurationSeconds,
       });
       setProductionScript(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleBuildPrompt = async () => {
+    if (productionScript.trim().length === 0) {
+      setError("There's no production script yet to build a prompt from.");
+      return;
+    }
+    const targetDurationSeconds = resolveTargetDurationSeconds(duration, customDuration);
+    if (targetDurationSeconds === null) {
+      setError("Enter a valid custom duration in seconds.");
+      return;
+    }
+    setError(null);
+    setPendingAction("build-prompt");
+    try {
+      const { prompt } = await postJson<{ prompt: string }>("/api/build-prompt", {
+        modelId: selectedModelId,
+        campaignType,
+        targetDurationSeconds,
+        aspectRatio,
+        environmentDescription,
+        objectReplacementDescription,
+        productionScript,
+        assetRoles,
+      });
+      setGeneratedPrompt(prompt);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -321,6 +358,50 @@ export default function ScriptPanel({ availableAssetLabels }: ScriptPanelProps) 
           onChange={(event) => setProductionScript(event.target.value)}
           rows={12}
           placeholder="The normalized production script will appear here."
+          className={textareaClassName}
+        />
+      </label>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          Environment description
+          <textarea
+            value={environmentDescription}
+            onChange={(event) => setEnvironmentDescription(event.target.value)}
+            rows={3}
+            placeholder="e.g. Move the scene to a bright modern kitchen"
+            className={textareaClassName}
+          />
+        </label>
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          Object replacement
+          <textarea
+            value={objectReplacementDescription}
+            onChange={(event) => setObjectReplacementDescription(event.target.value)}
+            rows={3}
+            placeholder="e.g. Replace the phone on the desk with the product image"
+            className={textareaClassName}
+          />
+        </label>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleBuildPrompt}
+        disabled={isBusy}
+        className={`${buttonClassName} w-fit`}
+      >
+        {pendingAction === "build-prompt" ? "Building…" : "Build Prompt"}
+      </button>
+
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        Generation Prompt
+        <textarea
+          value={generatedPrompt}
+          onChange={(event) => setGeneratedPrompt(event.target.value)}
+          rows={16}
+          placeholder="The model-ready prompt will appear here after you click Build Prompt. You can edit it before generation."
           className={textareaClassName}
         />
       </label>
